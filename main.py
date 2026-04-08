@@ -236,9 +236,9 @@ class ContentPipelineFlow(Flow[ContentPipelinState]):
                     # turn pydantic model into json
                     "content_type": self.state.content_type,
                     "content": (
-                        self.state.tweet
-                        if self.content_type == "tweet"
-                        else self.state.linkedin_post
+                        self.state.tweet.model_dump_json()
+                        if self.state.content_type == "tweet"
+                        else self.state.linkedin_post.model_dump_json()
                     ),
                 }
             )
@@ -250,7 +250,7 @@ class ContentPipelineFlow(Flow[ContentPipelinState]):
         content_type = self.state.content_type
         score = self.state.score
 
-        if score.score >= 8:
+        if score.score >= 7:
             return "check_passed"
         else:
             if content_type == "blog":
@@ -262,7 +262,28 @@ class ContentPipelineFlow(Flow[ContentPipelinState]):
 
     @listen("check_passed")
     def finalize_content(self):
+
+        if self.state.content_type == "blog":
+            print(f"Blog Post : {self.state.blog_post.title}")
+            print(f"SEO Score : {self.state.seo_score}/100")
+        elif self.state.content_type == "tweet":
+            print(f"Tweet : {self.state.tweet}")
+            print(f"Virality Score : {self.state.virality_score}/100")
+        elif self.state.content_type == "linkedin":
+            print(f"LinkedIn : {self.state.linkedin_post.title}")
+            print(f"Virality Score : {self.state.virality_score}/100")
+
         print("Finalizing content")
+
+        return (
+            self.state.linkedin_post
+            if self.state.content_type == "linkedin"
+            else (
+                self.state.tweet
+                if self.state.content_type == "tweet"
+                else self.state.blog_post
+            )
+        )
 
 
 flow = ContentPipelineFlow()
